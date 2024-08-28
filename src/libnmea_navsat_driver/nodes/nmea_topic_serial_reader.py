@@ -33,10 +33,13 @@
 import serial
 
 from nmea_msgs.msg import Sentence
+from rtcm_msgs.msg import Message as rtcm_msgs_RTCM
 import rclpy
 
 from libnmea_navsat_driver.driver import Ros2NMEADriver
 
+
+gps_port = None
 
 def main(args=None):
     rclpy.init(args=args)
@@ -44,6 +47,7 @@ def main(args=None):
     driver = Ros2NMEADriver()
 
     nmea_pub = driver.create_publisher(Sentence, "nmea_sentence", 10)
+    rtcm_sub = driver.create_subscription(rtcm_msgs_RTCM, "rtcm", subscribe_rtcm,10)
 
     serial_port = driver.declare_parameter('port', '/dev/ttyUSB0').value
     serial_baud = driver.declare_parameter('baud', 4800).value
@@ -52,10 +56,10 @@ def main(args=None):
     frame_id = driver.get_frame_id()
 
     try:
-        GPS = serial.Serial(port=serial_port, baudrate=serial_baud, timeout=2)
+        gps_port = serial.Serial(port=serial_port, baudrate=serial_baud, timeout=2)
         try:
             while rclpy.ok():
-                data = GPS.readline().strip()
+                data = gps_port.readline().strip()
 
                 sentence = Sentence()
                 sentence.header.stamp = driver.get_clock().now().to_msg()
@@ -65,6 +69,20 @@ def main(args=None):
 
         except Exception as e:
             driver.get_logger().error("Ros error: {0}".format(e))
-            GPS.close()  # Close GPS serial port
+            gps_port.close()  # Close GPS serial port
     except serial.SerialException as ex:
         driver.get_logger().fatal("Could not open serial port: I/O error({0}): {1}".format(ex.errno, ex.strerror))
+
+
+def subscribe_rtcm(rtcm):
+    try:
+        if gps_port is not None:
+        # print(rtcm.data)
+            try:
+                gps_port.write(rtcm.message)
+            except Exception as e:
+                print("Ros error: {0}".format(e))
+                gps_port.close()  # Close GPS serial port
+    
+    except serial.SerialException as ex:
+        print("Could not open serial port: I/O error({0}): {1}".format(ex.errno, ex.strerror))

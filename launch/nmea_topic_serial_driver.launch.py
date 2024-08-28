@@ -27,7 +27,7 @@ def generate_launch_description():
     config_file = os.path.join(get_package_share_directory("nmea_navsat_driver"), "config", "nmea_serial_driver.yaml")
     driver_node = actions.Node(
         package='nmea_navsat_driver',
-        executable='nmea_serial_driver',
+        executable='nmea_topic_serial_reader',
         output='screen',
         emulate_tty=True,
         parameters=[config_file])
