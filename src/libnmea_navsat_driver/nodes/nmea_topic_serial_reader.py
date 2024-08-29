@@ -47,7 +47,7 @@ def main(args=None):
     driver = Ros2NMEADriver()
 
     nmea_pub = driver.create_publisher(Sentence, "nmea_sentence", 10)
-    rtcm_sub = driver.create_subscription(rtcm_msgs_RTCM, "rtcm", subscribe_rtcm,10)
+#    rtcm_sub = driver.create_subscription(rtcm_msgs_RTCM, "rtcm", subscribe_rtcm,10)
 
     serial_port = driver.declare_parameter('port', '/dev/ttyUSB0').value
     serial_baud = driver.declare_parameter('baud', 4800).value
@@ -66,6 +66,7 @@ def main(args=None):
                 sentence.header.frame_id = frame_id
                 sentence.sentence = data.decode("ascii")
                 nmea_pub.publish(sentence)
+                driver.add_sentence(sentence.sentence,frame_id)
 
         except Exception as e:
             driver.get_logger().error("Ros error: {0}".format(e))
@@ -75,11 +76,13 @@ def main(args=None):
 
 
 def subscribe_rtcm(rtcm):
+
     try:
         if gps_port is not None:
         # print(rtcm.data)
             try:
                 gps_port.write(rtcm.message)
+                print("write rtcm")
             except Exception as e:
                 print("Ros error: {0}".format(e))
                 gps_port.close()  # Close GPS serial port
